@@ -66,3 +66,42 @@
         super-majority: u667 ;; 66.7% in basis points
     }
 )
+
+;; Data Maps
+(define-map members 
+    principal 
+    {
+        voting-power: uint,
+        joined-block: uint,
+        total-contributed: uint,
+        last-withdrawal: uint
+    }
+)
+
+(define-map proposals 
+    uint 
+    {
+        id: uint,
+        proposer: principal,
+        title: (string-ascii 100),
+        description: (string-utf8 1000),
+        amount: uint,
+        target: principal,
+        start-block: uint,
+        end-block: uint,
+        yes-votes: uint,
+        no-votes: uint,
+        status: (string-ascii 20),
+        executed: bool
+    }
+)
+
+(define-map votes 
+    {proposal-id: uint, voter: principal} 
+    {
+        amount: uint,
+        support: bool
+    }
+)
+
+(define-map emergency-admins principal bool)
