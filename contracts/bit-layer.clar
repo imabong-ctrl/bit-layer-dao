@@ -230,3 +230,67 @@
         (ok proposal-id)
     )
 )
+
+(define-public (create-return-pool (proposal-id uint) (total-amount uint))
+    (let
+        (
+            (caller tx-sender)
+            (proposal (unwrap! (get-proposal-by-id proposal-id) ERR-PROPOSAL-NOT-ACTIVE))
+        )
+        ;; Additional validation
+        (asserts! (is-eq caller (var-get dao-admin)) ERR-NOT-AUTHORIZED)
+        (asserts! (> total-amount u0) ERR-INVALID-AMOUNT)
+        ;; Check if proposal exists and is executed
+        (asserts! (is-eq (get status proposal) "executed") ERR-PROPOSAL-NOT-ACTIVE)
+        
+        (map-set return-pools
+            proposal-id
+            {
+                total-amount: total-amount,
+                distributed-amount: u0,
+                distribution-start: block-height,
+                distribution-end: (+ block-height (get timelock-period (var-get dao-parameters))),
+                claims: (list)
+            }
+        )
+        (ok true)
+    )
+)
+
+(define-public (claim-returns (proposal-id uint))
+    (let
+        (
+            (caller tx-sender)
+            (pool (unwrap! (get-return-pool proposal-id) ERR-NO-RETURNS))
+            (member-info (unwrap! (get-member-info caller) ERR-NOT-AUTHORIZED))
+            (claim-amount (calculate-member-share caller proposal-id))
+        )
+        (asserts! (> claim-amount u0) ERR-INVALID-AMOUNT)
+        (asserts! (not (has-claimed caller proposal-id)) ERR-ALREADY-VOTED)
+        
+        ;; Record claim
+        (map-set member-claims
+            {member: caller, pool-id: proposal-id}
+            {
+                amount: claim-amount,
+                claimed: true
+            }
+        )
+        
+        ;; Update pool
+        (map-set return-pools
+            proposal-id
+            (merge pool {
+                distributed-amount: (+ (get distributed-amount pool) claim-amount),
+                claims: (unwrap! (as-max-len? 
+                    (append (get claims pool) caller)
+                    u200
+                ) ERR-INVALID-PARAMETER)
+            })
+        )
+        
+        ;; Transfer returns
+        (try! (stx-transfer? claim-amount (as-contract tx-sender) caller))
+        (ok true)
+    )
+)
