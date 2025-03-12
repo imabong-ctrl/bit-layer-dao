@@ -105,3 +105,41 @@
 )
 
 (define-map emergency-admins principal bool)
+
+(define-map delegations
+    principal
+    {
+        delegate: principal,
+        amount: uint,
+        expiry: uint
+    }
+)
+
+(define-map return-pools
+    uint
+    {
+        total-amount: uint,
+        distributed-amount: uint,
+        distribution-start: uint,
+        distribution-end: uint,
+        claims: (list 200 principal)
+    }
+)
+
+(define-map member-claims
+    {member: principal, pool-id: uint}
+    {
+        amount: uint,
+        claimed: bool
+    }
+)
+
+;; Emergency Controls
+
+(define-public (set-emergency-state (state bool))
+    (begin
+        (asserts! (is-emergency-admin tx-sender) ERR-NOT-AUTHORIZED)
+        (var-set emergency-state state)
+        (ok true)
+    )
+)
