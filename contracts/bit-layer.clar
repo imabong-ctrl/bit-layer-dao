@@ -184,3 +184,49 @@
         (ok true)
     )
 )
+
+(define-public (create-proposal 
+    (title (string-ascii 100))
+    (description (string-utf8 1000))
+    (amount uint)
+    (target principal))
+    (let
+        (
+            (caller tx-sender)
+            (current-block block-height)
+            (proposal-id (+ (var-get proposal-count) u1))
+            (params (var-get dao-parameters))
+            (end-block (+ current-block (get voting-period params)))
+        )
+        ;; Additional input validation
+        (asserts! (not (is-eq target (as-contract tx-sender))) ERR-INVALID-PARAMETER)
+        (asserts! (> (len title) u0) ERR-INVALID-PARAMETER)
+        (asserts! (> (len description) u0) ERR-INVALID-PARAMETER)
+        (asserts! (is-some (get-member-info caller)) ERR-NOT-AUTHORIZED)
+        (asserts! (>= (var-get treasury-balance) amount) ERR-INSUFFICIENT-FUNDS)
+        (asserts! (>= amount (get min-proposal-amount params)) ERR-INVALID-AMOUNT)
+        (asserts! (<= amount (get max-proposal-amount params)) ERR-INVALID-AMOUNT)
+        
+        (try! (stx-transfer? (get proposal-fee params) caller (as-contract tx-sender)))
+        
+        (map-set proposals 
+            proposal-id
+            {
+                id: proposal-id,
+                proposer: caller,
+                title: title,
+                description: description,
+                amount: amount,
+                target: target,
+                start-block: (+ current-block (get voting-delay params)),
+                end-block: end-block,
+                yes-votes: u0,
+                no-votes: u0,
+                status: "active",
+                executed: false
+            }
+        )
+        (var-set proposal-count proposal-id)
+        (ok proposal-id)
+    )
+)
