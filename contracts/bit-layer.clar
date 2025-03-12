@@ -294,3 +294,39 @@
         (ok true)
     )
 )
+
+;; Governance Parameter Updates
+
+(define-public (update-dao-parameters (new-params {
+    proposal-fee: uint,
+    min-proposal-amount: uint,
+    max-proposal-amount: uint,
+    voting-delay: uint,
+    voting-period: uint,
+    timelock-period: uint,
+    quorum-threshold: uint,
+    super-majority: uint
+}))
+    (begin
+        (asserts! (is-eq tx-sender (var-get dao-admin)) ERR-NOT-AUTHORIZED)
+        (asserts! (validate-parameters new-params) ERR-INVALID-PARAMETER)
+        (var-set dao-parameters new-params)
+        (ok true)
+    )
+)
+
+;; Helper functions
+
+(define-private (calculate-member-share (member principal) (pool-id uint))
+    (let
+        (
+            (pool (unwrap! (get-return-pool pool-id) u0))
+            (member-info (unwrap! (get-member-info member) u0))
+            (total-shares (var-get treasury-balance))
+        )
+        (if (> total-shares u0)
+            (/ (* (get total-amount pool) (get voting-power member-info)) total-shares)
+            u0
+        )
+    )
+)
