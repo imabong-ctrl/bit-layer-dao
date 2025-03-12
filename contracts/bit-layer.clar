@@ -164,7 +164,7 @@
         (asserts! (not (is-eq delegate-to caller)) ERR-INVALID-DELEGATE)
         (asserts! (is-some (get-member-info delegate-to)) ERR-INVALID-DELEGATE)
         (asserts! (>= (get voting-power member-info) amount) ERR-INSUFFICIENT-FUNDS)
-        (asserts! (> expiry block-height) ERR-INVALID-PARAMETER)
+        (asserts! (> expiry stacks-block-height) ERR-INVALID-PARAMETER)
         
         (map-set delegations
             caller
@@ -193,7 +193,7 @@
     (let
         (
             (caller tx-sender)
-            (current-block block-height)
+            (current-block stacks-block-height)
             (proposal-id (+ (var-get proposal-count) u1))
             (params (var-get dao-parameters))
             (end-block (+ current-block (get voting-period params)))
@@ -248,8 +248,8 @@
             {
                 total-amount: total-amount,
                 distributed-amount: u0,
-                distribution-start: block-height,
-                distribution-end: (+ block-height (get timelock-period (var-get dao-parameters))),
+                distribution-start: stacks-block-height,
+                distribution-end: (+ stacks-block-height (get timelock-period (var-get dao-parameters))),
                 claims: (list)
             }
         )
